@@ -6,9 +6,8 @@ import threading
 import hsm
 import smach
 
-from smach_msgs.msg import SmachContainerStatus, SmachContainerInitialStatusCmd, SmachContainerStructure
+import hsm_msgs.msg as msgs
 
-#__all__ = ['IntrospectionClient', 'IntrospectionServer']
 __all__ = ['IntrospectionServer']
 
 # Topic names
@@ -133,13 +132,13 @@ class ContainerProxy():
         # Advertise structure publisher
         self._structure_pub = rospy.Publisher(
             name=server_name + STRUCTURE_TOPIC,
-            data_class=SmachContainerStructure,
+            data_class=msgs.State,
             queue_size=1)
 
         # Advertise status publisher
         self._status_pub = rospy.Publisher(
             name=server_name + STATUS_TOPIC,
-            data_class=SmachContainerStatus,
+            data_class=msgs.HsmStatus,
             queue_size=1)
 
         # Create thread to constantly publish
@@ -196,15 +195,11 @@ class ContainerProxy():
                 outcomes_to.append(t['to_state'].name)
         container_outcomes = set()#self._container.get_registered_outcomes()
 
-        # Construct structure message
-        structure_msg = SmachContainerStructure(
-            Header(stamp=rospy.Time.now()),
+        structure_msg = msgs.State(
             path,
-            children,
-            internal_outcomes,
-            outcomes_from,
-            outcomes_to,
-            container_outcomes)
+            self._container.get_initial_states(),
+            TransitionStructure())
+
         try:
             self._structure_pub.publish(structure_msg)
         except:
@@ -218,12 +213,10 @@ class ContainerProxy():
             path = self._path
 
             # Construct status message
-            state_msg = SmachContainerStatus(
-                Header(stamp=rospy.Time.now()),
+
+            state_msg = HsmStatus(
                 path,
                 [state.name for state in self._container.get_initial_states()],
-                [state.name for state in self._container.get_active_states()],
-                pickle.dumps(smach.UserData()._data, 2),
                 info_str)
             # Publish message
             self._status_pub.publish(state_msg)
