@@ -110,6 +110,7 @@ class TransitionsContainer(collections.defaultdict):
 class _History(object):
     def __init__(self, parent):
         self.parent = parent
+        self.name = parent.name #For better human-readable transition message: Needed in _publish_structure in introspection.py
 
 
 class State(object):
@@ -278,6 +279,15 @@ class State(object):
         while self.parent is not None:
             self = self.parent
         return self
+        
+    def _get_path(state):
+        '''Creates string with path of a state. 
+        Needed for creating status and structure message'''
+        path = state.name
+        while state.parent and state != state.root:
+            path = state.parent.name + '/' + path
+            state = state.parent
+        return path
 
     def is_substate(self, state):
         """Check whether the `state` is a substate of `self`.
@@ -418,6 +428,12 @@ class Container(State):
         initial = self.initial_state
         return [] if initial is None else [initial]
 
+    #TODO: Only checks the sublevel of self, not if there are active states 
+    #       below this level.
+    #       Since all messages now deal with the whole state machine and not 
+    #       just single container, we also have to check the whole sm for active states
+    #       => leaf_state replaces this function now completely!
+    #       ==> Can be deleted?
     def get_active_states(self):
         return [] if self.state is None else [self.state]
 

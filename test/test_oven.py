@@ -5,6 +5,7 @@ import threading, logging, time, rospy
 from hsm import State, Container, StateMachine, Event
 from hsm.introspection import IntrospectionServer
 
+
 class HeatingState(Container):
     def __init__(self, name):
         super(HeatingState, self).__init__(name)
@@ -19,6 +20,7 @@ class HeatingState(Container):
         oven = self.root
         if not oven.timer.is_alive():
             oven.start_timer()
+        time.sleep(5)
         print('Heating on')
 
     def on_exit(self, event):
@@ -41,7 +43,7 @@ class Oven(StateMachine):
         heating = door_closed.add_state(HeatingState('Heating'))
 
         door_open = self.add_state('Door open')
-
+        
         door_closed.add_transition('toast', heating['Toasting'])
         door_closed.add_transition('bake', heating['Baking'])
         door_closed.add_transition(events=['off', 'timeout'], target_state=off)
@@ -98,12 +100,19 @@ if __name__ == '__main__':
     rospy.init_node('oven')
 
     # enable logging
-    logger = logging.getLogger("hsm")
+    logger = logging.getLogger("pyhsm")
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler())
 
     oven = Oven()
-    sis = IntrospectionServer('hsm_introspection', oven, 'oven')
+    sis = IntrospectionServer('pyhsm_introspection', oven, 'oven')
     sis.start()
+    time.sleep(3)
+    oven.open_door()
+    time.sleep(2)
+    oven.close_door()
+    time.sleep(2)
+    oven.toast()
+    time.sleep(4)
     raw_input("Press a key to quit")
     sis.stop()
